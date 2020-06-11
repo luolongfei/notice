@@ -23,7 +23,7 @@ jobs:
       run: |
         echo 'Notice.'
         echo '@Author: mybsdc <mybsdc@gmail.com>'
-        echo '@Url: https://github.com/luolongfei/freenom'
+        echo '@Url: https://github.com/luolongfei/notice'
 
         python -m pip install --upgrade pip
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
