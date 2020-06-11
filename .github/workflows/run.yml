@@ -5,7 +5,7 @@ on:
       branches:
         - master
     schedule:
-      - cron: '${{ secrets.CRON }}'
+      - cron: 00 02 * * *
 jobs:
   run-it:
 
