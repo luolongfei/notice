@@ -1,0 +1,4 @@
+requests==2.23.0
+pyquery==1.4.1
+lxml==4.5.1
+python-dotenv==0.13.0

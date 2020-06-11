@@ -167,6 +167,8 @@ class Notice(object):
         all_news = self.__get_all_news()
         real_news = list(filter(lambda item: item['timestamp'] > self.max_timestamp and '教师' in item['title'], all_news))
 
+        for n in real_news:
+            print(n['title'])
         # 公告已经出了，故此脚本没用了，后期可以在这个基础上改造
 
 
