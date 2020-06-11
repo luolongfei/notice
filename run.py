@@ -147,11 +147,12 @@ class Notice(object):
         page = MIMEText(real_content, 'html', 'utf-8')
         msg.attach(page)
 
-        # 添加 html 内联图片
-        with open('mail/images/ting.jpg', 'rb') as img:
-            avatar = MIMEImage(img.read())
-            avatar.add_header('Content-ID', '<avatar>')
-            msg.attach(avatar)
+        # 添加 html 内联图片，仅适配模板中头像
+        if isinstance(content, tuple):
+            with open('mail/images/ting.jpg', 'rb') as img:
+                avatar = MIMEImage(img.read())
+                avatar.add_header('Content-ID', '<avatar>')
+                msg.attach(avatar)
 
         with smtplib.SMTP_SSL(host=host, port=port) if secure == 'ssl' else smtplib.SMTP(host=host,
                                                                                          port=port) as server:
