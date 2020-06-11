@@ -1,0 +1,27 @@
+name: Run it on action
+
+on: 
+    push:
+      branches:
+        - master
+    schedule:
+      - cron: 00 02 * * *
+jobs:
+  run-it:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 检出主分支
+      uses: actions/checkout@master
+    - name: 创建 python3.8 环境
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+        architecture: 'x64'
+    - name: 显示python版本
+      run: python -c "import sys; print(sys.version)"
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
