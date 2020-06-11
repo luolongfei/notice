@@ -169,6 +169,7 @@ class Notice(object):
 
         for n in real_news:
             print(n['title'])
+            self.sendMail(n['title'], 'test')
         # 公告已经出了，故此脚本没用了，后期可以在这个基础上改造
 
 
