@@ -93,7 +93,7 @@ class Notice(object):
             return ''
 
     @staticmethod
-    def sendMail(subject: str, content: str or tuple, to=None, template='default') -> None:
+    def send_mail(subject: str, content: str or tuple, to=None, template='default') -> None:
         """
         发送邮件
         :param subject:
