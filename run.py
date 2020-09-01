@@ -19,6 +19,7 @@ from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.utils import formataddr
 import requests
+import redis
 from pyquery import PyQuery as pq
 from lxml import etree
 from dotenv import load_dotenv
@@ -46,6 +47,9 @@ def catch_exception(origin_func):
 class Notice(object):
     symbol_regex = re.compile('{(?!})|(?<!{)}')
 
+    # 匹配标题
+    title_regex = re.compile(r'标题：(?P<title>.*?)$')
+
     def __init__(self):
         # 加载环境变量
         load_dotenv(verbose=True, override=True, encoding='utf-8')
@@ -54,29 +58,32 @@ class Notice(object):
             'Accept-Language': 'zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7,und;q=0.6',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36'
         }
-        self.max_timestamp = self.date2timestamp('2020-05-31')
+        self.max_timestamp = self.date2timestamp('2020-08-30')
+        self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
-    def __get_all_news(self) -> list:
-        r = requests.get('http://www.dykszx.com/index.php?catid=20', headers=self.headers)
+    def __get_all_notices(self) -> list:
+        r = requests.get('http://xxgk.deyang.gov.cn/xxgkml2020/gklist_iframe.jsp?pageSize=15&pageIndex=1&deptId=92338065&regionName=zjx&chanId=40016', headers=self.headers)
         r.encoding = 'utf-8'
 
         d = pq(r.text)
-        li = d('.newslist li')
+        li = d('#list_content ul li')
 
-        news_list = []
+        notices_list = []
         for item in li.items():
-            title = item.find('.r b').text()
-            date = '{}-{}'.format(item.find('.l i').text(), item.find('.l span').text())
-            url = 'http://www.dykszx.com' + item.find('a').attr('href')
+            title_match = Notice.title_regex.search(item.find('a').attr('title'))
+            title = title_match.group('title') if title_match else ''
 
-            news_list.append({
+            date = item.find('span').text()
+            url = 'http://xxgk.deyang.gov.cn/xxgkml2020/{}'.format(item.find('a').attr('href'))
+
+            notices_list.append({
                 'title': title,
                 'date': date,
                 'timestamp': Notice.date2timestamp(date),
                 'url': url
             })
 
-        return news_list
+        return notices_list
 
     @staticmethod
     def date2timestamp(date):
@@ -165,12 +172,19 @@ class Notice(object):
 
     @catch_exception
     def run(self):
-        all_news = self.__get_all_news()
-        real_news = list(filter(lambda item: item['timestamp'] > self.max_timestamp and '教师' in item['title'], all_news))
+        all_notices = self.__get_all_notices()
+        real_notices = list(filter(lambda item: item['timestamp'] > self.max_timestamp and '特岗' in item['title'], all_notices))
 
-        for n in real_news:
-            print(n['title'])
-        # 公告已经出了，故此脚本没用了，后期可以在这个基础上改造
+        for notice in real_notices:
+            print(notice['title'])
+
+            # 防止重复推送
+            if self.redis.get(notice['title']):
+                continue
+
+            Notice.send_mail(subject=notice['title'], content='网址：{}<br>发布时间：{}<br><br>By notification robot'.format(notice['url'], notice['date']))
+
+            self.redis.set(notice['title'], 1)
 
 
 if __name__ == '__main__':
