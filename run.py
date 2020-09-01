@@ -176,7 +176,7 @@ class Notice(object):
         real_notices = list(filter(lambda item: item['timestamp'] > self.max_timestamp and '特岗' in item['title'], all_notices))
 
         for notice in real_notices:
-            print(notice['title'])
+            print(notice)
 
             # 防止重复推送
             if self.redis.get(notice['title']):
