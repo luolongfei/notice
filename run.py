@@ -48,38 +48,44 @@ class Notice(object):
     symbol_regex = re.compile('{(?!})|(?<!{)}')
 
     # 匹配标题
-    title_regex = re.compile(r'标题：(?P<title>.*?)$')
+    title_regex = re.compile(r'(?:领取|申请).*?(?:学士|学位){2}.*?(?:证书)?.*?(?:申请|领取)?')
+
+    # 忽略小于等于此日期的通知
+    min_date = '2021-07-08'
 
     def __init__(self):
         # 加载环境变量
         load_dotenv(verbose=True, override=True, encoding='utf-8')
 
         self.headers = {
-            'Accept-Language': 'zh-CN,zh;q=0.9,ja;q=0.8,en;q=0.7,und;q=0.6',
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.97 Safari/537.36'
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36'
         }
-        self.max_timestamp = self.date2timestamp('2020-08-30')
         self.redis = redis.Redis(host='localhost', port=6379, db=0)
 
     def __get_all_notices(self) -> list:
-        r = requests.get('http://xxgk.deyang.gov.cn/xxgkml2020/gklist_iframe.jsp?pageSize=15&pageIndex=1&deptId=92338065&regionName=zjx&chanId=40016', headers=self.headers)
+        r = requests.get('https://lu.cwnu.edu.cn/xsxw.htm', headers=self.headers)
         r.encoding = 'utf-8'
 
         d = pq(r.text)
-        li = d('#list_content ul li')
+        li = d('.ss li')
 
         notices_list = []
         for item in li.items():
-            title_match = Notice.title_regex.search(item.find('a').attr('title'))
-            title = title_match.group('title') if title_match else ''
+            title = item.find('a').text()
+
+            match = Notice.title_regex.search(title)
+            if not match:
+                continue
 
             date = item.find('span').text()
-            url = 'http://xxgk.deyang.gov.cn/xxgkml2020/{}'.format(item.find('a').attr('href'))
+            if date <= Notice.min_date:
+                continue
+
+            url = f"https://lu.cwnu.edu.cn/{item.find('a').attr('href')}"
 
             notices_list.append({
                 'title': title,
                 'date': date,
-                'timestamp': Notice.date2timestamp(date),
                 'url': url
             })
 
@@ -173,16 +179,15 @@ class Notice(object):
     @catch_exception
     def run(self):
         all_notices = self.__get_all_notices()
-        real_notices = list(filter(lambda item: item['timestamp'] > self.max_timestamp and '特岗' in item['title'], all_notices))
 
-        for notice in real_notices:
+        for notice in all_notices:
             print(notice)
 
             # 防止重复推送
             if self.redis.get(notice['title']):
                 continue
 
-            Notice.send_mail(subject=notice['title'], content='网址：{}<br>发布时间：{}<br><br>By notification robot'.format(notice['url'], notice['date']))
+            Notice.send_mail(subject=f"抓取通知：notice['title']", content='网址：{}<br>发布时间：{}<br><br>By notification robot'.format(notice['url'], notice['date']))
 
             self.redis.set(notice['title'], 1)
 
