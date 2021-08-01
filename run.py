@@ -187,7 +187,7 @@ class Notice(object):
             if self.redis.get(notice['title']):
                 continue
 
-            Notice.send_mail(subject=f"抓取通知：notice['title']", content='网址：{}<br>发布时间：{}<br><br>By notification robot'.format(notice['url'], notice['date']))
+            Notice.send_mail(subject=f"抓取通知：{notice['title']}", content='网址：{}<br>发布时间：{}<br><br>By notification robot'.format(notice['url'], notice['date']))
 
             self.redis.set(notice['title'], 1)
 
