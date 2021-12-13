@@ -1,4 +1,4 @@
-lxml==4.6.3
+lxml==4.6.5
 redis==3.5.3
 pyquery==1.4.1
 requests==2.24.0
